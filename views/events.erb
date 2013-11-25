@@ -1,0 +1,103 @@
+ <div>
+  <div id="events">
+    <div id="system-events-container">
+      <div><h2>System events</h2></div>
+      <div id="system-events"></div>
+    </div>
+    <div id="management-events-container">
+      <div><h2>Virtual machines events</h2></div>
+      <div id="management-events"></div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+   /** Connection to rabbit*/
+   var ws = new SockJS('http://127.0.0.1:55674/stomp');
+   var client = Stomp.over(ws);
+   var on_connect = function() {
+
+       console.log('connected');
+   };
+   var on_error =  function() {
+       console.log('error');
+   };
+
+   var headers = 
+   {
+       "accept-version"  :'1.1',
+       "login"           :'snooze',
+       "passcode"        :'snooze',
+       "host"           :'snooze-vhost' 
+   }
+
+  var system_events = 0, 
+    management_events = 0;
+
+
+   client.connect(headers, function(x){
+      // groupleader messages 
+      id_system = client.subscribe("/exchange/system/groupleader.#", function(message)
+      {
+        add_system_event(message, "groupleader");
+      });
+      //groupmanager messages
+      id_system = client.subscribe("/exchange/system/groupmanager.#", function(message)
+      {
+        add_system_event(message, "groupmanager");
+      });
+      //localcontroller messages
+      id_system = client.subscribe("/exchange/system/localcontroller.#", function(message)
+      {
+        add_system_event(message, "localcontroller");
+      });
+
+
+      id_system = client.subscribe("/exchange/management/#.#.#.#", function(message)
+      {
+        add_management_event(message, "virtualmachine");
+      });
+
+    });
+
+  add_system_event = function(message, class_style){
+    var content = JSON.parse(message.body);
+    var destination = message.headers.destination;
+    var title = content.eventType +" > "+ content.message.hostname;
+
+    system_events = system_events + 1 
+
+        $("#system-events").prepend(
+        '<div id="system-event-'+system_events+'" style="width:100%;margin:5px; ">'+
+            '<a class="btn btn-default expander-system-'+system_events+'" style="margin:2px;" href="#">+</a>'+
+            '<div class="content" style="width:100%">'+
+                JSON.stringify(message, null, "\t")+
+            '</div>'+
+          '<span class="'+class_style+'">'+title+'</span>'+
+        '</div>');
+      $('.expander-system-'+system_events).simpleexpand();
+      $('system-event-'+system_events).fadeIn("slow");
+      var div_system_event = $("#system-events")
+  }
+
+  add_management_event = function(message, class_style){
+    var content = JSON.parse(message.body);
+    var destination = message.headers.destination;
+    var title = destination.split('.').slice(-2) + " : " + content.status;
+
+    management_events = management_events + 1 
+
+    $("#management-events").prepend(
+    '<div id="management-event-'+management_events+'" style="width:100%;margin:5px;">'+
+        '<a class="btn btn-default expander-management-'+management_events+'" style="margin:2px;"  href="#">+</a>'+
+        '<div class="content" style="width:100%">'+
+            JSON.stringify(message, null, "\t")+
+        '</div>'+
+      '<span class="'+class_style+'">'+ title +'</span>'+
+    '</div>');
+    $('.expander-management-'+management_events).simpleexpand();
+  $('management-event-'+management_events).fadeIn("fast");
+  }
+
+</script>

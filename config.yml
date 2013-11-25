@@ -1,0 +1,9 @@
+bootstrap        :
+  address        : localhost
+  port           : 5000
+stomp            :
+  address        : localhost
+  port           : 55674
+imagesRepository :
+  address        : localhost
+  port           : 4000

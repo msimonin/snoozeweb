@@ -1,0 +1,40 @@
+<h1>Localcontrollers</h1>
+<p>
+    
+   <a href="/localcontrollers?groupManagerId=<%=@parameters[:groupManagerId]%>&start=<%=@navigation[@first]%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">prev</a>
+   <a href="/localcontrollers?groupManagerId=<%=@parameters[:groupManagerId]%>&start=<%=@last%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">next</a>
+   <table class="table table-hover">
+      <tr>
+        <td><h4></h4></td>
+        <td><h4>id</h4></td>
+        <td><h4>hostname</h4></td>
+        <td><h4>controlDataAddress</h4></td>
+        <td><h4>hypervisorSettings</h4></td>
+        <td><h4>status</h4></td>
+        <td><h4>total capacity</h4></td>
+        <td><h4>wakeup settings</h4></td>
+        <td><h4>location</h4></td>
+      </tr>
+
+      <%  @localcontrollers.each do |localcontroller| %>
+      <% assigned_class=localcontroller["isAssigned"]?"":"warning"%>
+      <tr class="<%=assigned_class%>">
+          <td>
+            <a href="#" class="btn btn-primary">Details</a>
+            <a href="/groupmanagers/<%= localcontroller["location"]["groupManagerId"] %>/localcontrollers/<%=localcontroller["id"]%>/virtualmachines" class="btn btn-primary">VMs</a>
+          </td>
+          <td><%=localcontroller["id"]%></td>
+          <td><%=localcontroller["hostname"]%></td>
+          <td><%=localcontroller["controlDataAddress"]%></td>
+          <td><%=JSON.dump(localcontroller["hypervisorSettings"])%></td>
+          <td><%=localcontroller["status"]%></td>
+          <td><%=localcontroller["totalCapacity"]%></td>
+          <td><%=JSON.dump(localcontroller["wakeupSettings"])%></td>
+          <td><%=JSON.dump(localcontroller["location"])%></td
+        </tr>
+
+      <% end %> 
+    </table> 
+   <a href="/localcontrollers?groupManagerId=<%=@parameters[:groupManagerId]%>&start=<%=@navigation[@first]%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">prev</a>
+   <a href="/localcontrollers?groupManagerId=<%=@parameters[:groupManagerId]%>&start=<%=@last%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">next</a>
+</p>

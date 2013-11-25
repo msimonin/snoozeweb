@@ -1,0 +1,4 @@
+require './snoozeweb'
+
+
+SnoozeWeb.run!

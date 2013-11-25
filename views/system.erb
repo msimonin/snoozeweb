@@ -1,0 +1,519 @@
+ <div>
+  <div id="summary">
+    <h2>Snooze is currently running with ... </h2>
+    <p class="text-center">
+    <button id="groupmanagers-summary" type="button" class="btn btn-large btn-success disabled" disabled="disabled"><img src="/vendor/snooze/images/ajax-loader.gif" alt="Nan"/></button> Group Managers
+    <button id="localcontrollers-summary" type="button" class="btn btn-large btn-primary disabled" disabled="disabled"><img src="/vendor/snooze/images/ajax-loader.gif" alt="Nan"/></button> Local Controllers
+    <button id="virtualmachines-summary" type="button" class="btn btn-large btn-danger disabled" disabled="disabled"><img src="/vendor/snooze/images/ajax-loader.gif" alt="Nan"/></button> Virtual Machines
+    </p>
+  </div>
+
+  <div id="chart"></div>
+
+  <div id="events">
+    <div id="system-events-container">
+      <div><h2>System events</h2></div>
+      <div id="system-events"></div>
+    </div>
+    <div id="management-events-container">
+      <div><h2>Virtual machines events</h2></div>
+      <div id="management-events"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script type="text/javascript">
+
+   var w = 1500,
+       h = 800,
+       node,
+       link,
+       root;
+
+   var force = d3.layout.force()
+       .on("tick", tick)
+       .size([w, h])
+       .linkDistance(70)
+       .charge(-100);
+
+   var tooltip = d3.select("#chart").append("div")
+       .attr("class", "tooltip")
+       .style("opacity", 0);
+
+   var vis = d3.select("#chart").append("svg:svg")
+       .attr("width", w)
+       .attr("height", h);
+
+
+
+   d3.json("/vendor/dyn/hierarchy.json",
+          function(json){
+            root = transformSystemD3_(json);
+            root.fixed = true;
+            root.x = w/2;
+            root.y = h/2;
+            update();
+          });
+
+   // nested hierarchy in "d3" format (used to quick access d3 nodes)
+
+   function transformSystemD3_(hierarchy){
+      var result = {"name":"groupleader", "hostname":"", "type":"groupleader", "children":{}};
+      var children = result.children;
+
+      if (!hierarchy["groupManagerDescriptions"])
+         return result;
+
+      var groupManagers = hierarchy["groupManagerDescriptions"];
+      
+      for (index in groupManagers){
+         groupManager = groupManagers[index];
+         children[groupManager.id] = transformGroupManagerD3_(groupManager);  
+               
+      }
+      result["children"]=children;
+      return result;   
+   }
+
+   function transformGroupManagerD3_(groupmanager){
+      console.log("transforming groupmanager");
+      var result = {"name":groupmanager.id, "type":"groupmanager", "hostname":groupmanager.hostname, "status":"IDLE"};
+      if (!groupmanager["localControllers"]){
+         return result
+      }
+      var children={};
+      var localControllers = groupmanager["localControllers"] 
+      for (var id in localControllers){
+         localController = localControllers[id];
+         children[id] = transformLocalControllerD3_(localController);
+
+      }
+         result["children"]=children;      
+      return result;
+   }
+
+   function transformLocalControllerD3_(localcontroller){
+      var result = {"name":localcontroller.id, "type":"localcontroller", "hostname":localcontroller.hostname, "status":localcontroller.status};
+      if (!localcontroller["virtualMachineMetaData"]){
+         return result;      
+      }
+      var children = {}
+      var virtualMachines = localcontroller["virtualMachineMetaData"];
+      for (var id in virtualMachines){
+         var virtualMachine = virtualMachines[id];
+         children[id] = transformVirtualMachineD3_(virtualMachine);      
+
+      }
+         result["children"]=children;      
+      return result;
+   }
+
+   function transformVirtualMachineD3_(virtualMachine)
+   {
+      var id = virtualMachine["virtualMachineLocation"]["virtualMachineId"];
+      return {"name" : id, "hostname" : id, "type" : "virtualmachine"};
+   }
+
+
+   /** Connection to rabbit*/
+   var ws = new SockJS('http://127.0.0.1:55674/stomp');
+   var client = Stomp.over(ws);
+   var on_connect = function() {
+
+       console.log('connected');
+   };
+   var on_error =  function() {
+       console.log('error');
+   };
+
+   var headers = 
+   {
+       "accept-version"  :'1.1',
+       "login"           :'snooze',
+       "passcode"        :'snooze',
+       "host"           :'snooze-vhost' 
+   }
+
+   client.connect(headers, function(x){
+      // groupleader messages 
+      id_system = client.subscribe("/exchange/system/groupleader.#", function(message)
+      {
+        update_graph_groupleader_(message)
+        add_system_event(message, "groupleader");
+      });
+      //groupmanager messages
+      id_system = client.subscribe("/exchange/system/groupmanager.#", function(message)
+      {
+        update_graph_groupmanager_(message)
+        add_system_event(message, "groupmanager");
+      });
+      //localcontroller messages
+      id_system = client.subscribe("/exchange/system/localcontroller.#", function(message)
+      {
+        update_graph_localcontroller_(message)
+        add_system_event(message, "localcontroller");
+      });
+
+
+      id_system = client.subscribe("/exchange/management/#.#.#.#", function(message)
+      {
+        update_graph_virtualmachine_(message)
+        add_management_event(message, "virtualmachine");
+      });
+
+    });
+
+   function update_graph_groupleader_(message)
+   {
+      content = JSON.parse(message.body)
+      
+      if (content.eventType=='GM_JOIN')
+      {
+         console.log("add new GM :" + content);
+         groupManagerId = content["message"]["id"];
+         root.children[groupManagerId] = transformGroupManagerD3_(content["message"]);
+         update();
+      }
+      else if (content.eventType=='GM_FAILED')
+      {
+         console.log("remove a gm" + content);
+         groupManagerId = content["message"];
+         delete root.children[groupManagerId];
+         update();
+      }
+      else if (content.eventType=='GL_JOIN')
+      {
+        root = transformSystemD3_({});
+        update();
+      }
+   }
+
+   function update_graph_groupmanager_(message)
+   {
+     content = JSON.parse(message.body);
+
+      if (content.eventType == 'LC_FAILED'){
+         groupManagerId = message.headers.destination.split('.')[1];
+         localControllerId = content["message"];
+      }
+      if (content.eventType == 'LC_JOIN'){
+         groupManagerId = content["message"]["location"]["groupManagerId"];
+         localControllerId = content["message"]["id"];
+      }
+      if (content.eventType == 'GM_IDLE'){
+         groupManagerId = message.headers.destination.split('.')[1];
+      }
+
+      groupManager = root.children[groupManagerId];
+      if (content.eventType == 'LC_JOIN'){
+         groupManager.children[localControllerId] = transformLocalControllerD3_(content["message"]);         
+         update();
+      }
+      if (content.eventType == 'LC_FAILED'){
+         delete groupManager.children[localControllerId] ; 
+         update();        
+      }
+      if (content.eventType == 'GM_IDLE'){
+        // no change => no update could be better
+        groupManager.status = "IDLE";
+        update();
+      }
+      if (content.eventType == 'GM_BUSY'){
+        groupManager.status = "BUSY";
+        update();
+      }
+
+   }
+
+   function update_graph_localcontroller_(message)
+   {
+      content = JSON.parse(message.body)
+      if (content.eventType == 'ENERGY' ){
+        localControllerId = content.message.id;
+        groupManagerId = content.message.location.groupManagerId;
+        root.children[groupManagerId.children].children[localControllerId].status = 'PASSIVE';
+        update();
+      }
+   }
+
+   function update_graph_virtualmachine_(message)
+   {
+      content = JSON.parse(message.body);
+      destination = message.headers.destination.split(/[\.\/]/);
+      groupManagerId = destination[3];
+      localControllerId = destination[4];
+      virtualMachineId = destination[5];
+      event = destination[6];
+
+      if (event == "START"){
+        localController = root.children[groupManagerId].children[localControllerId];
+        localController.children[virtualMachineId] = transformVirtualMachineD3_(content["message"]);
+        update();
+      }
+      else if (event == "DROP"){
+        localController = root.children[groupManagerId].children[localControllerId];
+        delete localController.children[virtualMachineId];
+        update();
+      }
+      else if (event == "MIGRATION" && content["status"] == "PROCESSED" && content["message"]["migrated"]){
+        var oldLocalController = root.children[groupManagerId].children[localControllerId];
+        var newGroupManagerId =  content["message"]["destinationVirtualMachineLocation"]["groupManagerId"];
+        var newLocalControllerId =  content["message"]["destinationVirtualMachineLocation"]["localControllerId"];
+        var newLocalController = root.children[newGroupManagerId].children[newLocalControllerId];
+        copy = JSON.parse(JSON.stringify(oldLocalController.children[virtualMachineId]));
+        copy["virtualMachineLocation"] = content["message"]["destinationVirtualMachineLocation"];
+        console.log(JSON.stringify(oldLocalController.children[virtualMachineId]));
+        delete oldLocalController.children[virtualMachineId];
+        newLocalController.children[virtualMachineId] = copy;
+
+        update();
+      }
+
+
+   }
+
+    function update() {
+      update_graph();
+      update_summary();
+    }
+
+   function update_graph() {
+         nodes = flatten(root);
+         treeLayout = d3.layout.tree();
+
+         treeLayout.children = function(d){
+            if (!d.children)
+               return [];
+            var keys = Object.keys(d.children);            
+            return  keys.map(function(v) { return d.children[v]; });
+         }
+         
+         links = mylinks(nodes);
+         function mylinks(nodes){
+            return d3.merge(nodes.map(function(parent) {
+               return (treeLayout.children(parent) || []).map(function(child) {
+                  return {source: parent, target: child};
+            });
+         }));         
+      }
+     // Restart the force layout.
+     force
+         .nodes(nodes)
+         .links(links)
+         .start();
+
+     // Update the links…
+     link = vis.selectAll("line.link")
+         .data(links, function(d) { return d.target.id; });
+
+     // Enter any new links.
+     link.enter().insert("svg:line", ".node")
+         .attr("class", "link")
+         .attr("x1", function(d) { return d.source.x; })
+         .attr("y1", function(d) { return d.source.y; })
+         .attr("x2", function(d) { return d.target.x; })
+         .attr("y2", function(d) { return d.target.y; });
+
+     // Exit any old links.
+     link.exit().remove();
+
+     // Update the nodes…
+     node = vis.selectAll("circle.node")
+         .data(nodes, function(d) { return d.id; })
+         .style("fill", color);
+
+     // Enter any new nodes.
+     node.enter().append("svg:circle")
+         .attr("class", "node")
+         .attr("cx", function(d) { return d.x; })
+         .attr("cy", function(d) { return d.y; })
+         .attr("r", function(d) { return Math.sqrt(d.size) / 10 || 4.5; })
+         .style("fill", color)
+         .on("mouseover", function(d){
+            tooltip.transition()
+              .duration(200)
+              .style("opacity", .8);
+              tooltip.html(generate_tooltip(d));
+            })
+        .on("mouseout", function(d){
+            tooltip.transition()
+              .duration(500)
+              .style("opacity", 0);
+         })
+         .call(force.drag);
+
+     // Exit any old nodes.
+     node.exit().remove();
+   }
+  function generate_tooltip(d){
+    return "<h4>"+d.type+"</h4>" + d.hostname ;    
+  }
+
+   function tick() {
+     link.attr("x1", function(d) { return d.source.x; })
+         .attr("y1", function(d) { return d.source.y; })
+         .attr("x2", function(d) { return d.target.x; })
+         .attr("y2", function(d) { return d.target.y; });
+
+     node.attr("cx", function(d) { return d.x; })
+         .attr("cy", function(d) { return d.y; });
+   }
+
+   // Color leaf nodes orange, and packages white or blue.
+   // Color leaf nodes orange, and packages white or blue.
+   var color = function color(d) {
+     if (d.type == 'groupleader'){
+       if (d.status == 'IDLE')
+         return "white"
+       return "orange"
+     }
+
+     if (d.type == 'groupmanager'){
+       if (d.status != 'IDLE'){
+         return "white"
+       }
+       else{
+         return "green"
+       }
+     }
+     if (d.type == 'localcontroller'){
+       if (d.status!= "ACTIVE"){
+         return "white"
+       }else{
+         return _color_localcontroller(d)
+       }
+     }
+     if (d.type == 'virtualmachine')
+       return "red"
+     return "black"
+   }
+
+  var _color_localcontroller = function(d) {
+    var a = d["hostname"].split(".");
+    var host = a[0].split("-")
+//    var h = _toCharCode(host[0]), 
+    var h = 240, 
+        s = 100;
+    return "hsl(" + h + "," + s + "%, 50%)";  
+  }
+
+  var _toCharCode = function(s) {
+    var r = 0;
+    for ( var i = s.length-1 ;i > 2; i-- ){
+      r += s.charCodeAt(i)
+    }
+    return r;
+  }
+   // Toggle children on click.
+   function click(d) {
+     if (d.children) {
+       d._children = d.children;
+       d.children = null;
+     } else {
+       d.children = d._children;
+       d._children = null;
+     }
+     update();
+   }
+
+   // Returns a list of all nodes under the root.
+   function flatten(root) {
+     var nodes = [], i = 0;
+
+     function recurse(node) {
+       console.log("recurse" + node.name);
+       if (node.children){
+         var childs = node.children 
+         for (var c in childs){
+            console.log(c);
+            recurse(childs[c]);         
+         }
+       }
+       if (!node.id) node.id = node.name;
+       nodes.push(node);
+     }
+
+     recurse(root);
+     
+     return nodes;
+   }
+
+  //root is the hierarchical json
+  var nb_goupmanagers=0;
+  var nb_localcontrollers=0;
+  var nb_virtualmachines=0;
+
+    update_summary = function()
+    {
+        count_nodes();
+        $('#groupmanagers-summary').html(nb_groupmanagers);
+        $('#localcontrollers-summary').html(nb_localcontrollers);
+        $('#virtualmachines-summary').html(nb_virtualmachines);
+    };
+
+    function count_nodes()
+    {
+      nb_groupmanagers = Object.keys(root.children).length;
+      nb_localcontrollers=0
+      nb_virtualmachines=0
+      var groupmanagers=root.children
+      var groupmanager, localcontrollers, localcontroller, virtualmachines;
+      for (var index in groupmanagers)
+      {
+        groupmanager = groupmanagers[index]
+        localcontrollers = groupmanager.children
+        nb_localcontrollers += Object.keys(localcontrollers).length
+        for (var index2 in localcontrollers)
+        {
+          localcontroller = localcontrollers[index2]
+          virtualmachines = localcontroller.children
+          nb_virtualmachines += Object.keys(virtualmachines).length;
+        }
+      }
+    }
+
+  var system_events = 0, 
+  management_events = 0;
+
+  add_system_event = function(message, class_style){
+    var content = JSON.parse(message.body);
+    var destination = message.headers.destination;
+    var title = content.eventType +" > "+ content.message.hostname;
+
+    system_events = system_events + 1 
+
+        $("#system-events").prepend(
+        '<div id="system-event-'+system_events+'" style="width:100%;margin:5px; ">'+
+            '<a class="btn btn-default expander-system-'+system_events+'" style="margin:2px;" href="#">+</a>'+
+            '<div class="content" style="width:100%">'+
+                JSON.stringify(message, null, "\t")+
+            '</div>'+
+          '<span class="'+class_style+'">'+title+'</span>'+
+        '</div>');
+      $('.expander-system-'+system_events).simpleexpand();
+      $('system-event-'+system_events).fadeIn("slow");
+      var div_system_event = $("#system-events")
+  }
+
+  add_management_event = function(message, class_style){
+    var content = JSON.parse(message.body);
+    var destination = message.headers.destination;
+    var title = destination.split('.').slice(-2) + " : " + content.status;
+
+    management_events = management_events + 1 
+
+    $("#management-events").prepend(
+    '<div id="management-event-'+management_events+'" style="width:100%;margin:5px;">'+
+        '<a class="btn btn-default expander-management-'+management_events+'" style="margin:2px;"  href="#">+</a>'+
+        '<div class="content" style="width:100%">'+
+            JSON.stringify(message, null, "\t")+
+        '</div>'+
+      '<span class="'+class_style+'">'+ title +'</span>'+
+    '</div>');
+    $('.expander-management-'+management_events).simpleexpand();
+  $('management-event-'+management_events).fadeIn("fast");
+  }
+
+</script>

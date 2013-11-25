@@ -1,0 +1,113 @@
+/*!
+ * Bootstrap v2.3.1
+ *
+ * Copyright 2012 Twitter, Inc
+ * Licensed under the Apache License v2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Designed and built with all the love in the world @twitter by @mdo and @fat.
+ */
+.groupleader {
+  /* orange */
+  background-color: rgb(237, 156, 40);
+  border-radius:4px;
+  padding : 3px;
+}
+
+.groupmanager {
+  /* green */
+  background-color: rgb(81, 163, 81);
+  border-radius:4px;
+  padding : 3px;
+}
+
+
+.localcontroller {
+  /* blue */
+  background-color: rgb(66, 139, 202);
+  border-radius:4px;
+  padding : 3px;
+}
+
+.vmstart {
+  /* green */
+  background-color: rgb(81, 163, 81);
+  border-radius:4px;
+  padding : 3px;
+}
+
+.vmsuspend {
+  /* orange */
+  background-color: rgb(237, 156, 40);
+  border-radius:4px;
+  padding : 3px;
+}
+
+.vmresume {
+  /* green */
+  background-color: rgb(81, 163, 81);
+  border-radius:4px;
+  padding : 3px;
+}
+
+.vmshutdown {
+    /* blue */
+    background-color: rgb(66, 139, 202);
+    border-radius:4px;
+    padding : 3px;
+}
+
+.vmdrop {
+    /* blue */
+    background-color: rgb(66, 139, 202);
+    border-radius:4px;
+    padding : 3px;
+}
+
+.vmmigration {
+    /* light blue */
+    background-color: #5bc0de;
+    border-radius:4px;
+    padding : 3px;
+}
+
+
+  .content{display:none;}
+  
+  div#system-events-container{
+    float:left;
+    width:50%;
+  }
+  div#system-events{
+    height:300px;
+    overflow:auto;
+  }
+
+  div#management-events-container{
+    float:left;
+    width:50%;
+  }
+
+  div#management-events{
+    height:300px;
+    overflow:auto;
+  }
+
+
+   div.tooltip{
+     position: absolute;
+     background: lightsteelblue;
+     top:0px;
+     border: 0px;
+     width: 150px;
+     padding: 2px;
+     border-radius: 8px;
+     pointer-events: none;
+
+   }
+
+
+
+
+
+

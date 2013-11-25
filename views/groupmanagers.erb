@@ -1,0 +1,66 @@
+<h1>Groupmanagers</h1>
+<p>
+    
+   <a href="/groupmanagers?start=<%=@navigation[@first]%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">prev</a>
+   <a href="/groupmanagers?start=<%=@last%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">next</a>
+   <table class="table">
+      <tr>
+        <td><h4></h4></td>
+        <td><h4>id</h4></td>
+        <td><h4>hostname</h4></td>
+        <td><h4>listenSettings</h4></td>
+        <td><h4>heartbeatAddress</h4></td>
+        <td><h4>cpu</h4></td>
+        <td><h4>mem</h4></td>
+        <td><h4>rx</h4></td>
+        <td><h4>tx</h4></td>
+      </tr>
+
+      <%  @groupmanagers.each do |groupmanager| %>
+        <% assigned_class=groupmanager["isAssigned"]?"":"warning"%>
+        <tr class="<%=assigned_class%>">
+          <td>
+            <form action="/groupmanagers/<%=groupmanager["id"]%>/reconfiguration" method="post">
+              <button type="submit" class="btn btn-large btn-primary">Reconfiguration</button>
+            </form>  
+            <a href="/groupmanagers/<%=groupmanager["id"]%>/localcontrollers" class="btn btn-primary">LCs</a>
+            <a href="/groupmanagers/<%=groupmanager["id"]%>/virtualmachines" class="btn btn-primary">VMs</a>
+          </td>
+          <td><%=groupmanager["id"]%></td>
+          <td><%=groupmanager["hostname"]%></td>
+          <td><%=JSON.dump(groupmanager["listenSettings"])%></td>
+          <td><%=JSON.dump(groupmanager["heartbeatAddress"])%></td>
+          <%
+            begin  
+              used_capacity = groupmanager["summaryInformation"].first.last["usedCapacity"]
+              active_capacity = groupmanager["summaryInformation"].first.last["activeCapacity"]
+              display=nil
+              cpu = (used_capacity[0]/active_capacity[0]*100)
+              mem = (used_capacity[1]/active_capacity[1]*100)
+              rx = (used_capacity[1]/active_capacity[1]*100)
+              tx = (used_capacity[1]/active_capacity[1]*100)
+            rescue
+             display = "Nan"
+             used_capacity = [0,0,0,0]
+             active_capacity = [0,0,0,0]
+           end
+         %>
+          <td>
+              <button type="button" class="btn btn-large btn-primary disabled" disabled="disabled"><%= display || "%3.2f" % cpu %>%</button>
+          </td>
+          <td>
+              <button type="button" class="btn btn-large btn-primary disabled" disabled="disabled"><%= display ||  "%3.2f" %mem  %>%</button>
+          </td>
+          <td>
+              <button type="button" class="btn btn-large btn-primary disabled" disabled="disabled"><%= display ||  "%3.2f" %rx  %>%</button>
+          </td>
+          <td>
+              <button type="button" class="btn btn-large btn-primary disabled" disabled="disabled"><%= display ||  "%3.2f" %tx  %>%</button>
+          </td>
+        </tr>
+
+      <% end %> 
+    </table> 
+   <a href="/groupmanagers?start=<%=@navigation[@first]%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">prev</a>
+   <a href="/groupmanagers?start=<%=@last%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">next</a>
+</p>

@@ -1,0 +1,62 @@
+
+<h1>Virtual Machines</h1>
+<p>
+    
+<a href="/virtualmachines?groupManagerId=<%=@parameters[:groupManagerId]%>&localControllerId=<%=@parameters[:localControllerId]%>&start=<%=@navigation[@first]%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">prev</a>
+<a href="/virtualmachines?groupManagerId=<%=@parameters[:groupManagerId]%>&localControllerId=<%=@parameters[:localControllerId]%>&start=<%=@last%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">next</a>
+      <%  @virtualmachines.each do |virtualmachine| %>
+        <% assigned_class=virtualmachine["isAssigned"]?"":"warning"%>
+        <div class="<%= assigned_class%>" style="width:32%; float:left; border:1px solid gray;">
+            <a href="#" class="btn btn-p primary">Details</a>
+            <a href="/localcontrollers?localControllerId=<%=virtualmachine["virtualMachineLocation"]["localControllerId"]%>" class="btn btn-primary">LC</a>
+            <a href="/groupmanagers?groupmanagerId=<%=virtualmachine["virtualMachineLocation"]["groupManagerId"]%>" class="btn btn-primary">GM</a>
+          <%=virtualmachine["virtualMachineLocation"]["virtualMachineId"]%>
+          <span style="font-weight:bold;"><%=virtualmachine["ipAddress"]%></span>
+
+          <%=virtualmachine["status"]%>
+            <form action="/virtualmachines" method="post" accept-charset="utf-8">
+
+                <div class="controls">
+                  <select name="action" id="action">
+                    <option value=""></option>
+                    <option value="shutdown">shutdown</option>
+                    <option value="suspend">suspend</option>
+                    <option value="resume">resume</option>
+                    <option value="destroy">destroy</option>
+                  </select>
+                  <input type=hidden name="virtualMachineLocation" value='<%=JSON.dump(virtualmachine["virtualMachineLocation"])%>'/>
+                  <input type=hidden name="localControllerId" value="<%=@parameters[:localControllerId]%>"/>
+                  <input type=hidden name="groupManagerId" value="<%=@parameters[:groupManagerId]%>"/>
+                  <input type=hidden name="start" value="<%=@parameters[:start]%>"/>
+                  <input type=hidden name="limit" value="<%=@parameters[:limit]%>"/>
+
+                  <button type="submit" class="btn btn-large btn-primary">Ok</button>
+            </div>
+          </form>
+
+            </form>
+           
+          <%
+            summary = virtualmachine["usedCapacity"]
+            data = {}
+            summary.each do |ts, monitoring|
+              data[:cpu]||={}
+              data[:mem]||={}
+              data[:rx]||={}
+              data[:tx]||={}
+              data[:cpu][Time.at(ts.to_i/1000)] = monitoring["usedCapacity"][0]   
+              data[:mem][Time.at(ts.to_i/1000)] = monitoring["usedCapacity"][1]   
+              data[:rx][Time.at(ts.to_i/1000)] = monitoring["usedCapacity"][2]   
+              data[:tx][Time.at(ts.to_i/1000)] = monitoring["usedCapacity"][3]   
+            end
+          %>
+          <%= line_chart [{  :name => "cpu", :data => data[:cpu]}], :height => "100px", :library => {:hAxis => {:ticks => []}, :legend => {:position => 'none'}} %>
+          <%= line_chart [{  :name => "mem", :data => data[:mem]}], :height => "100px", :library => {:hAxis => {:ticks => []}, :legend => {:position => 'none'}} %>
+          <%= line_chart [{  :name => "rx", :data => data[:rx]}], :height => "100px", :library => {:hAxis => {:ticks => []}, :legend => {:position => 'none'}} %>
+          <%= line_chart [{  :name => "tx", :data => data[:tx]}], :height => "100px", :library => {:hAxis => {:ticks => []}, :legend => {:position => 'none'}} %>
+        </div>
+
+      <% end %> 
+<a href="/virtualmachines?groupManagerId=<%=@parameters[:groupManagerId]%>&localControllerId=<%=@parameters[:localControllerId]%>&start=<%=@navigation[@first]%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">prev</a>
+<a href="/virtualmachines?groupManagerId=<%=@parameters[:groupManagerId]%>&localControllerId=<%=@parameters[:localControllerId]%>&start=<%=@last%>&limit=<%=@parameters[:limit]%>" class="btn btn-default">next</a>
+</p>

@@ -1,0 +1,15 @@
+<h1>Snooze is currently running with ... </h1>
+
+
+<%=
+  pie_chart(
+    {
+      "Group Managers" => @nb_groupmanagers,
+      "Local Controllers" => @nb_localcontrollers
+    }
+  )
+%>
+
+<h2> and </h2>
+
+<button type="button" class="btn btn-large btn-success disabled" disabled="disabled"><%=@nb_virtualmachines%></button> Virtual Machines

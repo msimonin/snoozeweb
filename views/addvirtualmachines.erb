@@ -1,0 +1,76 @@
+<h1>Add virtual machines</h1>
+  <form action="/addVirtualMachines" method="post" accept-charset="utf-8">  
+    <div class="row">
+      <div class="span12 col-md-12">
+        <label class="control-label"><h3>Base name of the virtual machines</h3></label>
+        <input name="name" type="text" placeHolder="Type a name" value="" required>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="span6 col-md-6">
+
+        <label class="control-label"><h3>Choose an image to boot from</h3></label>
+        <% @images.each do |image| %>
+          <label class="radio">
+            <input type="radio" name="imageId" value=<%= image["name"]%> checked>
+            <%= image["name"] %> 
+          </label>
+        <% end %>
+
+      </div>
+      <div class="span6 col-md-6">
+        <label class="control-label"><h3>Choose you size</h3></label>
+
+        <div class="row">
+          <div class="span2 col-md-2">
+            <h5>VCPUs</h5>
+          </div>
+          <div class="span2 col-md-2">
+            <input name="vcpus" type="number"  placeHolder="1" value="1">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="span2 col-md-2">
+            <h5>Memory (MB)</h5>
+          </div>
+          <div class="span2 col-md-2">
+            <input name="memory" type="number"  placeHolder="256" value="256">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="span2 col-md-2">
+            <h5>Rx (bytes/s)</h5>
+          </div>
+          <div class="span2 col-md-2">
+            <input name="rx" type="number"  placeHolder="12800" value="12800">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="span2 col-md-2">
+            <h5>Tx (bytes/s)</h5>
+          </div>
+          <div class="span2 col-md-2">
+            <input name="tx" type="number"  placeHolder="12800" value="12800">
+          </div>
+        </div>
+
+      </div>
+      <div class="row">
+        <div class="span12 col-md-12">
+          <h3>Number to start</h3>
+            <input name="number" type="number" placeHolder="1" value="1">
+          </div>
+        </div>
+        <div class="row">
+          <div class="span12 col-md-12">
+            <button type="submit" class="btn btn-large btn-primary">Start</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</p>

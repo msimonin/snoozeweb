@@ -1,0 +1,20 @@
+<h1>Images</h1>
+  <div class="row">
+    <div class="span3"><h5>Name</h5></div>
+    <div class="span2"><h5>Capacity</h5></div>
+    <div class="span2"><h5>Allocation</h5></div>
+  </div>
+  <% @images.each do |image| %>
+    <div class="row">
+      <div class="span4"><%= image["name"] %></div>
+      <div class="span2"><%= image["capacity"]%></div>
+      <div class="span2"><%= image["allocation"]%></div>
+      <div class="span1">
+        <form method="post" action="/images">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="imageId" value="<%= image["name"]%>">
+          <button type="submit" class="btn btn-large btn-danger">delete</button> 
+        </form>
+      </div>
+    </div>
+  <% end %>
