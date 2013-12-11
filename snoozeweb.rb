@@ -32,6 +32,14 @@ class SnoozeWeb < Sinatra::Base
     end
   end
 
+  ## 
+  #
+  # Root 
+  #
+  get '/' do
+    erb(:home)
+  end
+
   ##
   #
   # Gets the list of images
