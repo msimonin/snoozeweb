@@ -1,7 +1,7 @@
 require 'net/ssh/gateway'  
 require './snoozeweb'
 
-login = ENV['USER'] || ENV['LOGIN'] 
+login = ENV['LOGIN'] || ENV['USER'] 
 bootstrap = ENV['BOOTSTRAP']
 
 config    = YAML.load_file("config.yml")
