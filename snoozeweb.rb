@@ -156,7 +156,7 @@ class SnoozeWeb < Sinatra::Base
   #
   #
   get '/system' do
-    url = "localhost:4567/hierarchy"
+    url = "localhost:#{request.port}/hierarchy"
     begin
       hierarchy = RestClient.get url
     rescue
