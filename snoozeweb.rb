@@ -239,7 +239,7 @@ class SnoozeWeb < Sinatra::Base
     else
       @alert = error
     end
-    redirect "/groupmanagers"
+    redirect back
   end
 
   ##
