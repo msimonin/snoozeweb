@@ -4,6 +4,7 @@ gem "sinatra"
 gem "chartkick"
 gem "rest-client"
 gem "net-ssh"
+gem "json"
 
 # The rerun command restarts the app if your files change
 gem "rerun"
