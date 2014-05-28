@@ -16,7 +16,7 @@
             <input type="radio" name="imageId" value=<%= image["name"]%> checked>
             <%= image["name"] %> 
           </label>
-        <% end %>
+        <% end  unless @images.nil?%>
 
       </div>
       <div class="span6 col-md-6">
